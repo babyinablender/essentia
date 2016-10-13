@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2006-2013  Music Technology Group - Universitat Pompeu Fabra
+ * Copyright (C) 2006-2016  Music Technology Group - Universitat Pompeu Fabra
  *
  * This file is part of Essentia
  *
@@ -25,7 +25,8 @@ using namespace essentia;
 using namespace standard;
 
 const char* FFTK::name = "FFT";
-const char* FFTK::description = DOC("This algorithm computes the positive complex STFT (Short-term Fourier transform) of an array of Reals using the FFT algorithm. The resulting fft has a size of (s/2)+1, where s is the size of the input frame.\n"
+const char* FFTK::category = "Standard";
+const char* FFTK::description = DOC("This algorithm computes the positive complex short-term Fourier transform (STFT) of an array using the FFT algorithm.  The resulting fft has a size of (s/2)+1, where s is the size of the input frame.\n"
 "At the moment FFT can only be computed on frames which size is even and non zero, otherwise an exception is thrown.\n"
 "\n"
 "FFT computation will be carried out using the KISS library [3]"
@@ -48,9 +49,9 @@ FFTK::~FFTK() {
   // This will cause a memory leak then, but it is definitely a better choice
   // than a crash (right, right??? :-) )
   if (essentia::isInitialized()) {
-      free(_fftCfg);
-      free(_input);
-      free(_output);
+    free(_fftCfg);
+    free(_input);
+    free(_output);
   }
 }
 
@@ -65,15 +66,14 @@ void FFTK::compute() {
     throw EssentiaException("FFT: Input size cannot be 0");
   }
 
-  if ((_fftCfg == 0) ||
-      ((_fftCfg != 0) && _fftPlanSize != size)) {
+  if (_fftCfg == 0 || (_fftCfg != 0 && _fftPlanSize != size)) {
     createFFTObject(size);
   }
 
   // copy input into plan
   memcpy(_input, &signal[0], size*sizeof(Real));
     
-    kiss_fftr(_fftCfg, (kiss_fft_scalar *) _input, (kiss_fft_cpx *) _output);
+  kiss_fftr(_fftCfg, (kiss_fft_scalar *) _input, (kiss_fft_cpx *) _output);
 
   // copy result from plan to output vector
   fft.resize(size/2+1);
@@ -94,17 +94,17 @@ void FFTK::createFFTObject(int size) {
     throw EssentiaException("FFT: can only compute FFT of arrays which have an even size");
   }
 
-    // create the temporary storage array
-    free(_input);
-    free(_output);
-      _input = (Real*)malloc(sizeof(Real)*size);
-      _output = (complex<Real>*)malloc(sizeof(complex<Real>)*size);
+  // create the temporary storage array
+  free(_input);
+  free(_output);
+  _input = (Real*)malloc(sizeof(Real)*size);
+  _output = (complex<Real>*)malloc(sizeof(complex<Real>)*size);
 
     
   if (_fftCfg != 0) {
     free(_fftCfg);
   }
     
-    _fftCfg = kiss_fftr_alloc(size, 0, NULL, NULL );    
+  _fftCfg = kiss_fftr_alloc(size, 0, NULL, NULL );    
   _fftPlanSize = size;
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2006-2013  Music Technology Group - Universitat Pompeu Fabra
+ * Copyright (C) 2006-2016  Music Technology Group - Universitat Pompeu Fabra
  *
  * This file is part of Essentia
  *
@@ -26,7 +26,7 @@
 #include "essentia/algorithmfactory.h"
 #include "essentia/pool.h"
 #include "extractor_music/MusicExtractor.h"
-#include <gaia.h>
+#include <gaia2/gaia.h>
 
 using namespace std;
 using namespace essentia;
@@ -113,27 +113,38 @@ int main(int argc, char* argv[]) {
       outputFilenames.push_back(argv[i+1]);
   }
 
+  MusicExtractor *extractor = new MusicExtractor();
   try {
     essentia::init();
 
     cout.precision(10); // TODO ????
 
-    MusicExtractor *extractor = new MusicExtractor();
     extractor->setExtractorOptions(profileFilename);
     extractor->loadSVMModels();
+  }
+  catch (EssentiaException& e) {
+    cerr << e.what() << endl;
+    return 1;
+  }
 
-    string format = extractor->options.value<string>("highlevel.inputFormat");
-    if (format != "json" && format != "yaml") {
-      cerr << "incorrect format specified: " << format << endl;
-      return 1;
-    }
+  string format = extractor->options.value<string>("highlevel.inputFormat");
+  if (format != "json" && format != "yaml") {
+    cerr << "incorrect format specified: " << format << endl;
+    return 1;
+  }
 
-    for (int i = 0; i < (int)inputFilenames.size(); i++) {
-        string inputFilename = inputFilenames[i];
-        string outputFilename = outputFilenames[i];
+  for (int i = 0; i < (int)inputFilenames.size(); i++) {
+      string inputFilename = inputFilenames[i];
+      string outputFilename = outputFilenames[i];
+      try {
         process_single_file(extractor, inputFilename, outputFilename, format);
-    }
+      // On Essentia Exception for a single file, skip it
+      } catch (EssentiaException& e) {
+        cerr << "skipping " << inputFilename << " due to error: " << e.what() << endl;
+      }
+  }
 
+  try {
     essentia::shutdown();
   }
   catch (EssentiaException& e) {
